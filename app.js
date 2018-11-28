@@ -10,7 +10,7 @@ const API_URL = `http://www.omdbapi.com/?apikey=${API_KEY}&type=movie&s=`;
 
 /////////
 //STATE
-const state = {
+let state = {
   searchTerm: '',
   results: [],
   watchLater: [],
@@ -18,6 +18,13 @@ const state = {
 }
 
 render(state)
+
+//SET STATE func
+function setState(newStateValues){
+  state = { ...state, ...newStateValues}; 
+  render(state);
+}
+
 //evt listener to track user input change
 input.addEventListener("keyup", ()=>{
   state.searchTerm = input.value;
@@ -29,13 +36,17 @@ async function formSubmitted(e) {
   e.preventDefault();
 
   try {
-    state.results = await getResults(state.searchTerm)
-    state.error = ''
+    const results = await getResults(state.searchTerm)
+    setState({
+      results,
+      error: ''
+    })
   } catch (error) {
-    state.results = []
-    state.error = error.message
+    setState({
+      results,
+      error: error.message
+    })
   }
-  render(state)
 }
 
 async function getResults(q){
@@ -55,7 +66,9 @@ function buttonClicked(event){
       return movie.imdbID === event.target.dataset.movieid
     })
     if(!state.watchLater.includes(movie)){
-      state.watchLater.push(movie)
+      setState({
+        watchLater: [...state.watchLater, movie]
+      })
     }
     render(state)
   }
