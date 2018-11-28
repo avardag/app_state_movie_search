@@ -1,4 +1,5 @@
 // vars
+const app = document.querySelector("#app");
 const form = document.querySelector("form");
 const input = document.querySelector("#searchTerm");
 const resultsSection = document.querySelector("#results");
@@ -12,9 +13,11 @@ const API_URL = `http://www.omdbapi.com/?apikey=${API_KEY}&type=movie&s=`;
 const state = {
   searchTerm: '',
   results: [],
-  watchLater: []
+  watchLater: [],
+  error: ''
 }
 
+render(state)
 //evt listener to track user input change
 input.addEventListener("keyup", ()=>{
   state.searchTerm = input.value;
@@ -27,20 +30,14 @@ async function formSubmitted(e) {
 
   try {
     state.results = await getResults(state.searchTerm)
-    showResults();
+    state.error = ''
   } catch (error) {
-    showError(error)
+    state.results = []
+    state.error = error.message
   }
-  
+  render(state)
 }
-// function formSubmitted(e) {
-//   const searchTerm = input.value;
 
-//   getResults(searchTerm)
-//   .then(showResults)
-
-//   e.preventDefault();
-// }
 async function getResults(q){
   const url = `${API_URL}${q}`;
 
@@ -52,54 +49,17 @@ async function getResults(q){
 
   return data.Search
 }
-// function getResults(q){
-//   const url = `${API_URL}${q}`;
 
-//   return fetch(url)
-//   .then(res => res.json())
-//   .then(data => data.Search)
-// }
-function showResults() {
-  resultsSection.innerHTML = '';
-  let html = state.results.reduce((html, movie) => {
-    return html + getMovieTemplate(movie, 4)
-  }, "")
-  
-  resultsSection.innerHTML = html;
-
-  addButtonListeners()
-}
-
-function addButtonListeners(){
-  const watchLaterButtons = document.querySelectorAll(".watch-later-btn");
-    watchLaterButtons.forEach(btn => {
-      btn.addEventListener("click", (event)=>{
-        const movie = state.results.find(movie => {
-          return movie.imdbID === btn.dataset.movieid
-        })
-        if(!state.watchLater.includes(movie)){
-          state.watchLater.push(movie)
-        }
-        
-        updateWatchLaterSec()
-        
-      })
+function buttonClicked(event){
+    const movie = state.results.find(movie => {
+      return movie.imdbID === event.target.dataset.movieid
     })
-}
+    if(!state.watchLater.includes(movie)){
+      state.watchLater.push(movie)
+    }
+    render(state)
+  }
 
-function updateWatchLaterSec(){
-  watchLaterSec.innerHTML = state.watchLater.reduce((html, movie) => {
-    return html + getMovieTemplate(movie, 12, false)
-  }, "")
-  
-}
-function showError(err) {
-  resultsSection.innerHTML = `
-    <div class="alert alert-danger col" role="alert">
-      ${err.message}
-    </div>
-  `
-}
 
 function getMovieTemplate(mov, cols, button=true){
   return `
@@ -109,12 +69,46 @@ function getMovieTemplate(mov, cols, button=true){
         <h5 class="card-title">${mov.Title}</h5>
         <p class="card-text">${mov.Year}</p>
         ${button ?
-          `<button data-movieid="${mov.imdbID}" class="btn btn-danger watch-later-btn" type="button">` 
+          `<button onclick="buttonClicked(event)" data-movieid="${mov.imdbID}" class="btn btn-danger watch-later-btn" type="button">
+          Watch later
+        </button>`
           : ""
         }
-         Watch later
-        </button>
+         
       </div>
     </div>
     `
+}
+
+//// RENDER FUNCTION
+function render(state) {
+  app.innerHTML = `
+    <section class="row movies-area">
+      <section id="results" class="row  col-9 mt-3">
+        ${
+          !state.error ?
+            state.results.reduce((html, movie) => {
+              return html + getMovieTemplate(movie, 4)
+            }, "")
+          : `
+            <div class="alert alert-danger col" role="alert">
+              ${state.error}
+            </div>
+          `
+        }
+      </section>
+      <section class="row  col-3 mt-3">
+        <h3>Watch later</h3>
+        <section class="row" id="watch-later">
+          ${
+            
+              state.watchLater.reduce((html, movie) => {
+                return html + getMovieTemplate(movie, 12, false)
+              }, "")
+              
+          }
+        </section>
+      </section>
+    </section>
+  `
 }
