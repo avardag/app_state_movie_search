@@ -7,17 +7,27 @@ const watchLaterSec = document.querySelector("#watch-later");
 const API_KEY = '1054410c';
 const API_URL = `http://www.omdbapi.com/?apikey=${API_KEY}&type=movie&s=`;
 
+/////////
+//STATE
+const state = {
+  searchTerm: '',
+  results: [],
+  watchLater: []
+}
+
+//evt listener to track user input change
+input.addEventListener("keyup", ()=>{
+  state.searchTerm = input.value;
+})
 
 form.addEventListener("submit", formSubmitted )
 
 async function formSubmitted(e) {
   e.preventDefault();
-  
-  const searchTerm = input.value;
 
   try {
-    const results = await getResults(searchTerm)
-    showResults(results);
+    state.results = await getResults(state.searchTerm)
+    showResults();
   } catch (error) {
     showError(error)
   }
@@ -49,27 +59,40 @@ async function getResults(q){
 //   .then(res => res.json())
 //   .then(data => data.Search)
 // }
-function showResults(results) {
+function showResults() {
   resultsSection.innerHTML = '';
-  let html = results.reduce((html, movie) => {
+  let html = state.results.reduce((html, movie) => {
     return html + getMovieTemplate(movie, 4)
   }, "")
   
   resultsSection.innerHTML = html;
 
-  const watchLaterButtons = document.querySelectorAll(".watch-later-btn");
-  watchLaterButtons.forEach(btn => {
-    btn.addEventListener("click", (event)=>{
-      const movie = results.find(movie => {
-        return movie.imdbID === btn.dataset.movieid
-      })
-      watchLaterSec.innerHTML += getMovieTemplate(movie, 12, false)
-      
-      
-    })
-  })
+  addButtonListeners()
 }
 
+function addButtonListeners(){
+  const watchLaterButtons = document.querySelectorAll(".watch-later-btn");
+    watchLaterButtons.forEach(btn => {
+      btn.addEventListener("click", (event)=>{
+        const movie = state.results.find(movie => {
+          return movie.imdbID === btn.dataset.movieid
+        })
+        if(!state.watchLater.includes(movie)){
+          state.watchLater.push(movie)
+        }
+        
+        updateWatchLaterSec()
+        
+      })
+    })
+}
+
+function updateWatchLaterSec(){
+  watchLaterSec.innerHTML = state.watchLater.reduce((html, movie) => {
+    return html + getMovieTemplate(movie, 12, false)
+  }, "")
+  
+}
 function showError(err) {
   resultsSection.innerHTML = `
     <div class="alert alert-danger col" role="alert">
